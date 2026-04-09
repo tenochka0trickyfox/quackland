@@ -79,10 +79,12 @@ The project has **two artifacts** and their workflows. The `.replit` file alread
 - **Routes served**: `/` — the frontend portal (React + Vite, inline styles, dark theme)
 
 ### Workflow: `Project` (run button)
-- This is the default run-button workflow already configured in `.replit`. Do not replace it.
+- This is the default run-button workflow already configured in `.replit`
+- Do NOT create this workflow. Do NOT edit this workflow.
 
 ### CRITICAL
 The `.replit` file already contains all necessary configuration to run the project — **do not create new workflows or modify `.replit`**.
+Project does NOT require a new super-workflow that can run both artifacts - they work perfectly as artifacts themselves.
 
 ---
 
