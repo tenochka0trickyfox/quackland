@@ -32,11 +32,18 @@ const ANTHROPIC_MODELS = [
 ];
 
 function validateAuth(req: Request, res: Response): boolean {
-  const auth = req.headers["authorization"];
-  if (!auth || auth !== `Bearer ${PROXY_API_KEY}`) {
-    res.status(401).json({ error: { message: "Invalid API key", type: "invalid_request_error" } });
+  const auth = req.headers["authorization"] ?? "";
+  const token = auth.startsWith("Bearer ")
+    ? auth.slice(7)
+    : req.headers["x-api-key"];
+
+  if (!token || token !== `${PROXY_API_KEY}`) {
+    res.status(401).json({
+      error: { message: "Unauthorized", type: "authentication_error" },
+    });
     return false;
   }
+
   return true;
 }
 
