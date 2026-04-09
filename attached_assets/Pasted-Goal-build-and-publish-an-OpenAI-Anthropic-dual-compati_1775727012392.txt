@@ -1,0 +1,175 @@
+Goal: build and publish an OpenAI + Anthropic dual-compatible proxy API in a Replit pnpm monorepo.
+
+【Environment Setup】
+- Add OpenAI and Anthropic AI integrations in Replit Integrations through setupReplitAIIntegrations. This automatically injects AI_INTEGRATIONS_OPENAI_BASE_URL, AI_INTEGRATIONS_OPENAI_API_KEY, AI_INTEGRATIONS_ANTHROPIC_BASE_URL, and AI_INTEGRATIONS_ANTHROPIC_API_KEY. The user does not need to provide API keys, and usage costs are billed to Replit credits.
+- Use requestEnvVar to request the Secret: PROXY_API_KEY (any string, used as the Bearer Token). If SESSION_SECRET already exists, skip it.
+
+【API Server Changes】
+File: artifacts/api-server/src/routes/proxy.ts
+
+# Model list
+- GET /v1/models:
+  * validate the Bearer Token
+  * return the model list:
+    - OpenAI: gpt-5.2, gpt-5-mini, gpt-5-nano, o4-mini, o3
+    - Anthropic: claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5
+
+# POST /v1/chat/completions (OpenAI-compatible interface)
+- Validate Authorization: Bearer ${PROXY_API_KEY}. If validation fails, return 401.
+- Route by model prefix:
+  * models starting with gpt- or o -> OpenAI client
+  * models starting with claude- -> Anthropic client
+- Full Tool Call support:
+  * pass through tools and tool_choice to OpenAI in the original format
+  * for Anthropic, convert tool formats in both directions: function.parameters ↔ input_schema
+  * map tool_choice for Anthropic: required -> any, specific function -> {type:"tool"}
+- Message conversion:
+  * convert role:"tool" into Anthropic tool_result content blocks
+  * convert assistant tool_calls into tool_use blocks
+  * parse JSON arguments into the input object
+- Response conversion:
+  * convert Anthropic tool_use blocks into OpenAI tool_calls
+  * map stop_reason:"tool_use" -> finish_reason:"tool_calls"
+
+# Streaming (stream=true)
+- Set Content-Type: text/event-stream and X-Accel-Buffering: no.
+- Call res.flushHeaders().
+- OpenAI stream:
+  * pass through chunks directly
+  * call res.flush() on every chunk
+- Anthropic stream:
+  * convert content_block_start / delta / stop into OpenAI chunk format
+  * convert streamed tool input_json_delta into function.arguments deltas
+  * call res.flush() on every chunk
+- Send a keepalive every 5 seconds with ": keepalive\n\n".
+- On req.on("close"), clearInterval.
+- Use try/finally to prevent 500 errors.
+
+# Non-streaming (stream=false)
+- OpenAI:
+  * return the raw response directly
+- Anthropic:
+  * always use messages.stream().finalMessage() internally as a buffered path
+  * Anthropic requires streaming internally for long requests; otherwise it returns 500 after 10 minutes
+  * return OpenAI-format JSON
+
+# Body size
+- Set the Express body limit to 50mb.
+
+# POST /v1/messages (native Anthropic Messages interface)
+- Validate the Bearer Token in the same way.
+- Accept the native Anthropic Messages API request format:
+  * system
+  * messages
+  * tools
+  * tool_choice
+  * max_tokens
+  * stream
+  * and related fields
+- For Claude models:
+  * pass through directly to Anthropic
+  * for non-streaming, internally use stream().finalMessage()
+  * for streaming, forward all native SSE events:
+    - message_start
+    - content_block_start / delta / stop
+    - ping
+    - message_delta
+    - message_stop
+- For OpenAI models:
+  * convert Anthropic messages into OpenAI messages:
+    - tool_result -> role:"tool"
+    - tool_use -> tool_calls
+  * convert tool format:
+    - input_schema -> parameters
+    - map tool_choice accordingly
+  * convert the OpenAI response into Anthropic Message format:
+    - content[] blocks
+    - stop_reason
+    - usage.input_tokens / output_tokens
+  * for streaming, synthesize a full Anthropic SSE event sequence, including tool call blocks:
+    - content_block_start with type tool_use
+    - input_json_delta
+
+File: artifacts/api-server/src/app.ts
+
+- app.use(express.json({ limit: "50mb" }));
+- app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+- app.use("/api", router);
+- app.use("/v1", proxyRouter);
+
+File: artifacts/api-server/.replit-artifact/artifact.toml
+
+- Add "/v1" to the paths array.
+- Do this through verifyAndReplaceArtifactToml, not by editing the file directly.
+
+# Dependencies
+- Install these dependencies in artifacts/api-server/package.json under dependencies:
+  * openai: ^6
+  * @anthropic-ai/sdk: ^0.82
+
+【Frontend Portal】
+- Create the artifact with createArtifact({ artifactType: "react-vite", slug: "api-portal", previewPath: "/", title: "API Portal" }).
+
+App.tsx features:
+- Use only inline styles.
+- Use a dark theme with hsl(222,47%,11%).
+- Do not depend on any external UI library.
+
+# Header
+- Add a top Header with:
+  * an icon
+  * a title
+  * an online status indicator
+- Check status through fetch(/api/healthz).
+- Show a green/red dot with a glow effect.
+
+# Connection Details section
+- Show:
+  * Base URL (window.location.origin)
+  * Auth Header instructions
+- Each item should include a copy button.
+
+# API Endpoints section
+- List three endpoints.
+- Show:
+  * METHOD badge (GET in green / POST in purple)
+  * full URL
+  * interface type badge (OpenAI in blue / Anthropic in orange / both in gray)
+  * copy button
+- Add descriptive text to distinguish the two request formats.
+
+# Available Models section
+- Use a Grid layout.
+- Each model should show:
+  * model ID
+  * provider badge (OpenAI in blue / Anthropic in orange)
+
+# CherryStudio setup guide
+- Add a 4-step setup guide.
+- Use circular numbered markers with gradient color.
+- Each step should include:
+  * title
+  * description
+- In step 2, explicitly note that either OpenAI or Anthropic provider type may be selected.
+
+# Quick Test
+- Add a curl example.
+- Use a code block with syntax-highlight-like colors.
+- Make the whole block copyable.
+
+# Copy buttons
+- Use navigator.clipboard.writeText with a fallback.
+- After copying, show "Copied!" state for 2 seconds.
+
+# Footer
+- Add a tech stack description.
+
+【Publishing】
+- Restart workflows:
+  * artifacts/api-server: API Server
+  * artifacts/api-portal: web
+- Verify:
+  * curl localhost:80/v1/models -H "Authorization: Bearer $PROXY_API_KEY" should return the model list
+  * without a Token, it should return 401
+- Run presentArtifact({ artifactId: "artifacts/api-portal" })
+- Run suggestDeploy()
