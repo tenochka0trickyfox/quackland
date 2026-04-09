@@ -67,15 +67,17 @@ await requestEnvVar({
 The project has **two artifacts** and their workflows. The `.replit` file already contains all necessary configuration to run the project — **do not create new workflows or modify `.replit`**.
 
 ### Workflow 1: `artifacts/api-server: API Server`
-- **Command**: `pnpm --filter @workspace/api-server run dev`
+- **Command**: `PORT=8080 pnpm --filter @workspace/api-server run dev`
 - **Port**: 8080 (internal)
+- **Required env vars (must be inline in the command)**: `PORT=8080`
 - **Routes served**:
   - `/api` — health check and other internal API endpoints
   - `/v1` — proxy endpoints (models, chat/completions, messages)
 
 ### Workflow 2: `artifacts/api-portal: web`
-- **Command**: `pnpm --filter @workspace/api-portal run dev`
+- **Command**: `PORT=24927 BASE_PATH=/ pnpm --filter @workspace/api-portal run dev`
 - **Port**: 24927 (internal)
+- **Required env vars (must be inline in the command)**: `PORT=24927 BASE_PATH=/`
 - **Routes served**: `/` — the frontend portal (React + Vite, inline styles, dark theme)
 
 ### Workflow: `Project` (run button)
