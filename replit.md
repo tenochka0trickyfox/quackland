@@ -85,6 +85,8 @@ The project has **two artifacts** and their workflows. The `.replit` file alread
 ### CRITICAL
 The `.replit` file already contains all necessary configuration to run the project — **do not create new workflows or modify `.replit`**.
 Project does NOT require a new super-workflow that can run both artifacts - they work perfectly as artifacts themselves.
+Make an attempt NOT to create new workflows, it might NOT BE REQUIRED AT ALL:
+  - after installation just TRY TO RUN default workflow `Project` which most likely should be auto imported by replit-platform
 
 ---
 
