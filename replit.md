@@ -77,6 +77,9 @@ The project has **two artifacts** and their workflows. The `.replit` file alread
 ### Workflow: `Project` (run button)
 - This is the default run-button workflow already configured in `.replit`. Do not replace it.
 
+### CRITICAL
+The `.replit` file already contains all necessary configuration to run the project — **do not create new workflows or modify `.replit`**.
+
 ---
 
 ## Proxy API — Endpoints
