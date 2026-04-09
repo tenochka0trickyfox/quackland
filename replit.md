@@ -62,22 +62,42 @@ await requestEnvVar({
 
 ### Step 4 — Restart the Artifact-Derived Workflows
 
-**NEVER call `configureWorkflow()` or create any workflow manually.** The Replit platform auto-derives workflows from each artifact's `artifact.toml`. Calling `configureWorkflow()` creates duplicates that fight over the same ports and breaks the `runButton = "Project"` button.
+**NEVER call `configureWorkflow()` or create any workflow manually.** The Replit platform auto-derives workflows from each artifact's `artifact.toml` — they appear automatically once the platform processes the artifacts (usually at the end of the first agent session). Calling `configureWorkflow()` creates duplicates that fight over the same ports and breaks the `runButton = "Project"` button.
 
-The two artifact-derived workflows are:
+**CRITICAL: Workflows CAN be empty. They are being creating by replit-platform itself AFTER agent finish first agent session.**
+
+#### Critical rules to avoid duplication
+
+- **Do NOT check `listWorkflows()` to decide whether to create workflows.** The artifact-derived workflows may show as `not_started` or may not yet be visible if the platform hasn't finished registering the artifacts. An empty or short list does NOT mean you should call `configureWorkflow()`.
+- **Always use the `restart_workflow` TOOL** (not the `restartWorkflow` code_execution callback) to start or restart these workflows. The tool can bring a `not_started` workflow to `running`.
+- If `restart_workflow` tool fails because the workflow isn't found yet, wait and retry — never fall back to `configureWorkflow()`.
+
+#### The two artifact-derived workflows (auto-created by the platform)
+
 - `artifacts/api-server: API Server`
 - `artifacts/api-portal: web`
 
-After the user provides `PROXY_API_KEY`, restart both using their exact artifact-derived names so they pick up the new secrets:
+After the user provides `PROXY_API_KEY`, restart both using the `restart_workflow` TOOL with their exact artifact-derived names:
 
-```javascript
-await restartWorkflow({ workflowName: "artifacts/api-server: API Server", timeout: 45 });
-await restartWorkflow({ workflowName: "artifacts/api-portal: web", timeout: 30 });
+```
+restart_workflow tool → name: "artifacts/api-server: API Server", workflow_timeout: 45
+restart_workflow tool → name: "artifacts/api-portal: web", workflow_timeout: 30
 ```
 
-Bootstrap is complete once both workflows are running; but the loading time might require couple seconds!
+Bootstrap is complete once both workflows are running.
 
-If the services need a restart after code changes, use `restart_workflow` with the exact artifact-derived names above — never create new ones.
+#### How to detect and fix accidental duplication
+
+If `listWorkflows()` shows both manually-named workflows (e.g. `API Server`, `API Portal`) AND artifact-derived ones (e.g. `artifacts/api-server: API Server`, `artifacts/api-portal: web`), remove the manual ones immediately:
+
+```javascript
+await removeWorkflow({ name: "API Server" });
+await removeWorkflow({ name: "API Portal" });
+```
+
+Then use the `restart_workflow` tool to start the artifact-derived ones.
+
+If the services need a restart after code changes, use the `restart_workflow` TOOL with the exact artifact-derived names above — never create new ones.
 
 ---
 
