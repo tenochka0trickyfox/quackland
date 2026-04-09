@@ -10,6 +10,10 @@ A dual-compatible AI proxy API that accepts both **OpenAI** and **Anthropic** AP
 
 When setting up this project from scratch on Replit, follow these steps **in order**. Each step must complete before the next begins.
 
+### Step 0 — INSTALL DEPENDENCIES AT THE VERY START
+- Execute command install of module pnpm properly
+
+
 ### Step 1 — Provision OpenAI AI Integration
 
 Call `setupReplitAIIntegrations` in the code execution sandbox. This automatically injects the correct environment variables — **do not ask the user for these, and do not modify them manually**.
