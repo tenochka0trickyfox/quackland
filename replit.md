@@ -60,15 +60,22 @@ await requestEnvVar({
 });
 ```
 
-### Step 4 — Bootstrap is Complete. Do NOT touch workflows.
+### Step 4 — Restart the Artifact-Derived Workflows
 
-**The Replit platform automatically derives workflows from the `artifact.toml` files in each artifact directory.** These are the only workflows this project needs and they are named:
+**NEVER call `configureWorkflow()` or create any workflow manually.** The Replit platform auto-derives workflows from each artifact's `artifact.toml`. Calling `configureWorkflow()` creates duplicates that fight over the same ports and breaks the `runButton = "Project"` button.
+
+The two artifact-derived workflows are:
 - `artifacts/api-server: API Server`
 - `artifacts/api-portal: web`
 
-**NEVER call `configureWorkflow()` or create any workflow manually.** Doing so creates duplicate workflows alongside the platform-derived ones, which breaks the `runButton = "Project"` behaviour (it would try to start all four instead of two).
+After the user provides `PROXY_API_KEY`, restart both using their exact artifact-derived names so they pick up the new secrets:
 
-After the user provides `PROXY_API_KEY`, bootstrap is done. The artifact-derived workflows will start automatically when the user runs the project.
+```javascript
+await restartWorkflow({ workflowName: "artifacts/api-server: API Server", timeout: 45 });
+await restartWorkflow({ workflowName: "artifacts/api-portal: web", timeout: 30 });
+```
+
+Bootstrap is complete once both workflows are running; but the loading time might require couple seconds!
 
 If the services need a restart after code changes, use `restart_workflow` with the exact artifact-derived names above — never create new ones.
 
