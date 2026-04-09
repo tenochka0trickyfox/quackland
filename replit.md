@@ -10,9 +10,9 @@ A dual-compatible AI proxy API that accepts both **OpenAI** and **Anthropic** AP
 
 When setting up this project from scratch on Replit, follow these steps **in order**. Each step must complete before the next begins.
 
-### Step 0 — INSTALL DEPENDENCIES AT THE VERY START
-- Execute command install of module pnpm properly
+### Step 0 — Install Dependencies First
 
+Run `pnpm install` via bash.
 
 ### Step 1 — Provision OpenAI AI Integration
 
@@ -60,35 +60,37 @@ await requestEnvVar({
 });
 ```
 
+### Step 4 — Bootstrap is Complete. Do NOT touch workflows.
+
+**The Replit platform automatically derives workflows from the `artifact.toml` files in each artifact directory.** These are the only workflows this project needs and they are named:
+- `artifacts/api-server: API Server`
+- `artifacts/api-portal: web`
+
+**NEVER call `configureWorkflow()` or create any workflow manually.** Doing so creates duplicate workflows alongside the platform-derived ones, which breaks the `runButton = "Project"` behaviour (it would try to start all four instead of two).
+
+After the user provides `PROXY_API_KEY`, bootstrap is done. The artifact-derived workflows will start automatically when the user runs the project.
+
+If the services need a restart after code changes, use `restart_workflow` with the exact artifact-derived names above — never create new ones.
+
 ---
 
 ## Workflows and Artifacts
 
-The project has **two artifacts** and their workflows. The `.replit` file already contains all necessary configuration to run the project — **do not create new workflows or modify `.replit`**.
+The project has two artifacts. Their run commands, ports, and env vars are defined entirely inside each artifact's `artifact.toml` — the Replit platform reads these and auto-generates the workflows. **Do not replicate this configuration anywhere else.**
 
-### Workflow 1: `artifacts/api-server: API Server`
-- **Command**: `PORT=8080 pnpm --filter @workspace/api-server run dev`
-- **Port**: 8080 (internal)
-- **Required env vars (must be inline in the command)**: `PORT=8080`
+### `artifacts/api-server: API Server` (auto-derived from artifact.toml)
+- **Port**: 8080
 - **Routes served**:
   - `/api` — health check and other internal API endpoints
   - `/v1` — proxy endpoints (models, chat/completions, messages)
 
-### Workflow 2: `artifacts/api-portal: web`
-- **Command**: `PORT=24927 BASE_PATH=/ pnpm --filter @workspace/api-portal run dev`
-- **Port**: 24927 (internal)
-- **Required env vars (must be inline in the command)**: `PORT=24927 BASE_PATH=/`
+### `artifacts/api-portal: web` (auto-derived from artifact.toml)
+- **Port**: 24927
 - **Routes served**: `/` — the frontend portal (React + Vite, inline styles, dark theme)
 
-### Workflow: `Project` (run button)
-- This is the default run-button workflow already configured in `.replit`
-- Do NOT create this workflow. Do NOT edit this workflow.
-
-### CRITICAL
-The `.replit` file already contains all necessary configuration to run the project — **do not create new workflows or modify `.replit`**.
-Project does NOT require a new super-workflow that can run both artifacts - they work perfectly as artifacts themselves.
-Make an attempt NOT to create new workflows, it might NOT BE REQUIRED AT ALL:
-  - after installation just TRY TO RUN default workflow `Project` which most likely should be auto imported by replit-platform
+### `Project` (run button)
+- `runButton = "Project"` in `.replit` starts **all** artifact-derived workflows together.
+- Do NOT create this workflow. Do NOT edit this workflow. Do NOT add more workflows.
 
 ---
 
